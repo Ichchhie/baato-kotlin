@@ -2,6 +2,8 @@ package com.example.myapplication
 
 import android.content.Context
 import android.util.Log
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -88,23 +90,28 @@ class BaatoReverse(private val context: Context) {
     }
 
     fun doRequest() {
+        val logging = HttpLoggingInterceptor()
+        // set your desired log level
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY)
+
+        val httpClient: OkHttpClient.Builder = OkHttpClient.Builder()
+        httpClient.addInterceptor(logging) // <-- this is the important line!
+
         val retrofit = Retrofit.Builder()
             .baseUrl(apiBaseUrl)
             .addConverterFactory(GsonConverterFactory.create())
+            .client(httpClient.build())
             .build()
         val service = retrofit.create(BaatoAPI::class.java)
         val call = service.performReverseGeoCode(giveMeQueryFilter())
 
         call.enqueue(object : Callback<PlaceAPIResponse?> {
             override fun onResponse(
-                call: Call<PlaceAPIResponse?>,
-                response: Response<PlaceAPIResponse?>
+                call: Call<PlaceAPIResponse?>, response: Response<PlaceAPIResponse?>
             ) {
-                Log.d(TAG, "onResponse: success ${response.body()}")
                 if (response.isSuccessful() && response.body() != null) baatoReverseRequestListener!!.onSuccess(
                     response.body()
                 ) else {
-                    Log.d(TAG, "onResponse: error")
                     try {
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -113,7 +120,6 @@ class BaatoReverse(private val context: Context) {
             }
 
             override fun onFailure(call: Call<PlaceAPIResponse?>, throwable: Throwable) {
-                Log.d(TAG, "onResponse: failure")
                 baatoReverseRequestListener!!.onFailed(throwable)
             }
         })
@@ -126,7 +132,7 @@ class BaatoReverse(private val context: Context) {
     private fun giveMeQueryFilter(): Map<String, String> {
         val queryMap: MutableMap<String, String> = HashMap()
         //compulsory
-        if (accessToken != null) queryMap["key"] = accessToken!!
+        queryMap["key"] = accessToken!!
         if (limit != 0) queryMap["limit"] = limit.toString() + ""
         queryMap["lat"] = latLon!!.lat.toString() + ""
         queryMap["lon"] = latLon!!.lon.toString() + ""

@@ -14,7 +14,7 @@ class MainActivity : AppCompatActivity() {
                 .setRadius(2)
                 .withListener(object : BaatoReverse.BaatoReverseRequestListener {
                     override fun onSuccess(places: PlaceAPIResponse?) {
-                        Log.d("TAG", "onSuccess: ")
+                        Log.d("TAG", "onSuccess: $places")
                     }
 
                     override fun onFailed(error: Throwable?) {
